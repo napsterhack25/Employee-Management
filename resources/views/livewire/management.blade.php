@@ -23,15 +23,9 @@
             </div>
 
             <div class="ml-auto">
-            <input type="text" wire:model="search" wire:keydown="updateSearch" class="border p-2 rounded w-64" placeholder="Search employees...">
+                <input type="text" wire:model="search" wire:keydown="updateSearch" class="border p-2 rounded w-64" placeholder="Search employees...">
             </div>
         </div>
-
-
-
-
-
-
         <table class="min-w-full bg-white border rounded shadow-md">
             <thead>
                 <tr class="bg-gray-200 text-left">
@@ -59,13 +53,11 @@
                     <th class="p-2">Actions</th>
                 </tr>
             </thead>
-
-
-
             <tbody>
-                @forelse ($users as $user)
+                @forelse ($users as $index => $user)
                 <tr class="border-t">
-                    <td class="p-2">{{ $user->id }}</td>
+                    <td class="p-2">{{ ($users->currentPage() - 1) * $users->perPage() + $index + 1 }}</td>
+
                     <td class="p-2">
                         <img src="{{ asset('storage/' . $user->image) }}" class="w-12 h-12 rounded-full" alt="User Image">
                     </td>

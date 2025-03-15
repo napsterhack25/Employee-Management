@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Livewire\Components; 
+namespace App\Livewire\Components;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Hash; 
+use Illuminate\Support\Facades\Hash;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 
 
@@ -15,7 +16,7 @@ class EmployeeModal extends Component
     use WithFileUploads;
 
     public $showModal = false;
-    public $userId, $first_name, $last_name, $email, $phone, $post, $image; 
+    public $userId, $first_name, $last_name, $email, $phone, $post, $image;
     protected $listeners = ['openEmployeeModal' => 'open', 'editEmployee' => 'edit'];
 
     public function open()
@@ -37,8 +38,8 @@ class EmployeeModal extends Component
         $this->phone = $user->phone;
         $this->post = $user->post;
 
-        // ✅ Load existing image path
-        $this->image = $user->image ? asset('storage/' . $user->image) : null;
+        // ✅ Store only filename instead of full URL
+        $this->image = $user->image;
 
         $this->showModal = true;
 
@@ -48,19 +49,25 @@ class EmployeeModal extends Component
     }
 
 
-
     public function save()
     {
-        Log::info('Save method triggered');
+        Log::info('Save method triggered', ['userId' => $this->userId]);
 
-        $data = $this->validate([
+        // ✅ Adjust validation to prevent existing image string errors
+        $rules = [
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email,' . $this->userId,
             'phone' => 'required|numeric',
             'post' => 'required|string',
-            'image' => 'nullable|image|max:1024',
-        ]);
+        ];
+
+        // ✅ Only validate image if a new file is uploaded
+        if ($this->image instanceof TemporaryUploadedFile) {
+            $rules['image'] = 'nullable|image|max:1024';
+        }
+
+        $data = $this->validate($rules);
 
         $data['name'] = trim($this->first_name . ' ' . $this->last_name);
 
@@ -70,18 +77,32 @@ class EmployeeModal extends Component
             unset($data['password']);
         }
 
-        if ($this->image) {
+        // ✅ Log Image Type
+        Log::info('Image before saving', [
+            'type' => gettype($this->image),
+            'value' => $this->image
+        ]);
+
+        // ✅ Handle Image Upload
+        if ($this->image instanceof TemporaryUploadedFile) {
             $data['image'] = $this->image->store('users', 'public');
+            Log::info('New image uploaded:', ['path' => $data['image']]);
+        } else {
+            $data['image'] = $this->image; // Keep the existing image
+            Log::info('Keeping existing image:', ['image' => $this->image]);
         }
 
         try {
             if ($this->userId) {
+                Log::info('Updating user with data:', $data);
                 User::findOrFail($this->userId)->update($data);
-                Log::info('User Updated: ' . $this->userId);
+                Log::info('User Updated Successfully: ' . $this->userId);
             } else {
+                Log::info('Creating new user with data:', $data);
                 $user = User::create($data);
                 Log::info('New User Created: ' . $user->id);
             }
+
             $this->resetForm();
             $this->showModal = false;
             $this->dispatch('refreshUsers')->to(\App\Livewire\Management::class);
@@ -97,8 +118,8 @@ class EmployeeModal extends Component
     private function resetForm()
     {
         $this->userId = null;
-        $this->first_name = ''; 
-        $this->last_name = ''; 
+        $this->first_name = '';
+        $this->last_name = '';
         $this->email = '';
         $this->phone = '';
         $this->post = '';

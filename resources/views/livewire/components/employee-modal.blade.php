@@ -40,9 +40,9 @@
 
 
                 <!-- ✅ Show existing image preview when editing -->
-                @if ($image)
-                <img src="{{ $image }}" class="w-20 h-20 rounded-full mt-2">
-                @endif
+                @if ($userId && is_string($image))
+    <img src="{{ asset('storage/' . $image) }}" class="w-20 h-20 rounded-full mt-2">
+@endif
 
                 <div class="flex justify-end space-x-2">
                     <button type="button" wire:click="$set('showModal', false)" class="px-4 py-2 bg-gray-400 text-white rounded">Close</button>
