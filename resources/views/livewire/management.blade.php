@@ -26,6 +26,21 @@
                 <input type="text" wire:model="search" wire:keydown="updateSearch" class="border p-2 rounded w-64" placeholder="Search employees...">
             </div>
         </div>
+
+        @if (session()->has('success'))
+    <div class="p-2 bg-green-100 text-green-600 rounded">
+        {{ session('success') }}
+    </div>
+@endif
+
+@if (session()->has('error'))
+    <div class="p-2 bg-red-100 text-red-600 rounded">
+        {{ session('error') }}
+    </div>
+@endif
+
+
+        
         <table class="min-w-full bg-white border rounded shadow-md">
             <thead>
                 <tr class="bg-gray-200 text-left">
@@ -114,16 +129,17 @@
 
     </div>
 
-    @if (session()->has('error'))
-    <div class="p-2 bg-red-100 text-red-600 rounded">
-        {{ session('error') }}
-    </div>
-    @endif
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        Livewire.on('successMessage', message => {
+            alert(message); // ✅ Should show "User created successfully!" or "User updated successfully!"
+        });
 
-    @if (session()->has('success'))
-    <div class="p-2 bg-green-100 text-green-600 rounded">
-        {{ session('success') }}
-    </div>
-    @endif
+        Livewire.on('errorMessage', message => {
+            alert('Error: ' + message);
+        });
+    });
+</script>
+
 
 </div> <!-- ✅ Closing root <div> -->

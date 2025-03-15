@@ -23,10 +23,15 @@ class DeleteConfirmation extends Component
     {
         if ($this->userId) {
             User::find($this->userId)?->delete();
+            
+            // Dispatch an event instead of using session()->flash
+            $this->dispatch('successMessage', 'User deleted successfully!');
+            
             $this->dispatch('refreshUsers');
             $this->showModal = false;
         }
     }
+    
 
     public function render()
     {

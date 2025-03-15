@@ -47,73 +47,62 @@ class EmployeeModal extends Component
 
         $this->dispatch('refresh');
     }
-
-
+  
     public function save()
     {
         Log::info('Save method triggered', ['userId' => $this->userId]);
-
-        // ✅ Adjust validation to prevent existing image string errors
-        $rules = [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $this->userId,
-            'phone' => 'required|numeric',
-            'post' => 'required|string',
-        ];
-
-        // ✅ Only validate image if a new file is uploaded
-        if ($this->image instanceof TemporaryUploadedFile) {
-            $rules['image'] = 'nullable|image|max:1024';
-        }
-
-        $data = $this->validate($rules);
-
-        $data['name'] = trim($this->first_name . ' ' . $this->last_name);
-
-        if (!$this->userId) {
-            $data['password'] = Hash::make('default123');
-        } else {
-            unset($data['password']);
-        }
-
-        // ✅ Log Image Type
-        Log::info('Image before saving', [
-            'type' => gettype($this->image),
-            'value' => $this->image
-        ]);
-
-        // ✅ Handle Image Upload
-        if ($this->image instanceof TemporaryUploadedFile) {
-            $data['image'] = $this->image->store('users', 'public');
-            Log::info('New image uploaded:', ['path' => $data['image']]);
-        } else {
-            $data['image'] = $this->image; // Keep the existing image
-            Log::info('Keeping existing image:', ['image' => $this->image]);
-        }
-
+    
         try {
-            if ($this->userId) {
-                Log::info('Updating user with data:', $data);
-                User::findOrFail($this->userId)->update($data);
-                Log::info('User Updated Successfully: ' . $this->userId);
-            } else {
-                Log::info('Creating new user with data:', $data);
-                $user = User::create($data);
-                Log::info('New User Created: ' . $user->id);
+            $rules = [
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'nullable|string|max:255',
+                'email' => 'required|email|unique:users,email,' . $this->userId,
+                'phone' => 'required|numeric',
+                'post' => 'required|string',
+            ];
+    
+            if ($this->image instanceof TemporaryUploadedFile) {
+                $rules['image'] = 'nullable|image|max:1024';
             }
-
+    
+            $data = $this->validate($rules);
+            $data['name'] = trim($this->first_name . ' ' . $this->last_name);
+    
+            if (!$this->userId) {
+                $data['password'] = Hash::make('default123');
+                $message = 'User created successfully!';
+            } else {
+                unset($data['password']);
+                $message = 'User updated successfully!';
+            }
+    
+            if ($this->image instanceof TemporaryUploadedFile) {
+                $data['image'] = $this->image->store('users', 'public');
+            } else {
+                $data['image'] = $this->image;
+            }
+    
+            if ($this->userId) {
+                User::findOrFail($this->userId)->update($data);
+            } else {
+                User::create($data);
+            }
+    
             $this->resetForm();
             $this->showModal = false;
+    
+            // ✅ Dispatch event with message
+            $this->dispatch('successMessage', $message);
+    
+            // ✅ Refresh other components if needed
             $this->dispatch('refreshUsers')->to(\App\Livewire\Management::class);
-            $this->emit('$refresh');
-            session()->flash('success', 'User saved successfully!');
+    
         } catch (\Exception $e) {
             Log::error('Error saving user:', ['error' => $e->getMessage()]);
-            session()->flash('error', $e->getMessage());
+            $this->dispatch('errorMessage', $e->getMessage());
         }
     }
-
+    
 
     private function resetForm()
     {
